@@ -36,7 +36,7 @@ jobs:
           cd ports/rp2
           mkdir -p build-PICO_W
           cd build-PICO_W
-          cmake .. -DPICO_BOARD=pico_w -DPICO_SDK_PATH=$PICO_SDK_PATH -G "Ninja"
+          cmake .. -DPICO_BOARD=pico2_w -DPICO_SDK_PATH=$PICO_SDK_PATH -G "Ninja"
           ninja
           cd ../..
           echo "Firmware build finished!"
