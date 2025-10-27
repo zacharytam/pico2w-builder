@@ -1,0 +1,46 @@
+name: Build Pico2W Firmware
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y build-essential cmake python3 wget xz-utils git ninja-build
+
+      - name: Install ARM GCC Toolchain
+        run: |
+          wget https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-x86_64-arm-none-eabi.tar.xz
+          tar -xf arm-gnu-toolchain-13.2.rel1-x86_64-arm-none-eabi.tar.xz
+          echo "$(pwd)/arm-gnu-toolchain-13.2.rel1-x86_64-arm-none-eabi/bin" >> $GITHUB_PATH
+
+      - name: Build mpy-cross
+        run: |
+          cd micropython/mpy-cross
+          make -j$(nproc)
+
+      - name: Build firmware for Pico W
+        env:
+          PICO_TOOLCHAIN_PATH: ${{ github.workspace }}/arm-gnu-toolchain-13.2.rel1-x86_64-arm-none-eabi
+        run: |
+          cd micropython/ports/rp2
+          cmake -DPICO_BOARD=pico_w -G "Ninja" .
+          ninja
+
+      - name: Upload firmware artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: micropython-pico2w
+          path: micropython/ports/rp2/build-PICO_W/firmware.uf2
+
