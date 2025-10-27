@@ -12,7 +12,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          submodules: recursive   # <--- FIX: get pico-sdk too!
+          submodules: recursive
 
       - name: Install dependencies
         run: |
@@ -23,13 +23,10 @@ jobs:
         run: |
           wget https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-x86_64-arm-none-eabi.tar.xz
           tar -xf arm-gnu-toolchain-13.2.rel1-x86_64-arm-none-eabi.tar.xz
-          echo "$(pwd)/arm-gnu-toolchain-13.2.rel1-x86_64-arm-none-eabi/bin" >> $GITHUB_PATH
-
-      - name: Verify submodules
-        run: |
-          cd micropython
-          git submodule update --init --recursive
-          ls -R lib | grep pico-sdk || echo "❌ pico-sdk not found!"
+          TOOLCHAIN_DIR=$(pwd)/arm-gnu-toolchain-13.2.rel1-x86_64-arm-none-eabi
+          echo "TOOLCHAIN_DIR=$TOOLCHAIN_DIR" >> $GITHUB_ENV
+          echo "$TOOLCHAIN_DIR/bin" >> $GITHUB_PATH
+          arm-none-eabi-gcc --version || echo "ARM GCC not found"
 
       - name: Build mpy-cross
         run: |
@@ -38,7 +35,7 @@ jobs:
 
       - name: Build firmware for Pico W
         env:
-          PICO_TOOLCHAIN_PATH: ${{ github.workspace }}/arm-gnu-toolchain-13.2.rel1-x86_64-arm-none-eabi
+          PICO_TOOLCHAIN_PATH: ${{ env.TOOLCHAIN_DIR }}
         run: |
           cd micropython/ports/rp2
           git submodule update --init --recursive
