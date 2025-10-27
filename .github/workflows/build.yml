@@ -7,7 +7,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -17,7 +16,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y build-essential cmake python3 wget xz-utils git ninja-build
+          sudo apt install -y build-essential cmake python3 wget xz-utils git
 
       - name: Install ARM GCC Toolchain
         run: |
@@ -25,22 +24,19 @@ jobs:
           tar -xf arm-gnu-toolchain-13.2.rel1-x86_64-arm-none-eabi.tar.xz
           echo "$(pwd)/arm-gnu-toolchain-13.2.rel1-x86_64-arm-none-eabi/bin" >> $GITHUB_PATH
 
-      - name: Build mpy-cross
+      - name: Build MicroPython mpy-cross
         run: |
-          cd micropython/mpy-cross
+          cd mpy-cross
           make -j$(nproc)
 
-      - name: Build firmware for Pico W
-        env:
-          PICO_TOOLCHAIN_PATH: ${{ github.workspace }}/arm-gnu-toolchain-13.2.rel1-x86_64-arm-none-eabi
+      - name: Build firmware for Pico2W
         run: |
-          cd micropython/ports/rp2
-          cmake -DPICO_BOARD=pico_w -G "Ninja" .
-          ninja
+          cd ports/rp2
+          make BOARD=PICO_W -j$(nproc)
 
       - name: Upload firmware artifact
         uses: actions/upload-artifact@v4
         with:
           name: micropython-pico2w
-          path: micropython/ports/rp2/build-PICO_W/firmware.uf2
+          path: ports/rp2/build-PICO_W/firmware.uf2
 
