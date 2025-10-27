@@ -23,10 +23,15 @@ jobs:
         run: |
           wget https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-x86_64-arm-none-eabi.tar.xz
           tar -xf arm-gnu-toolchain-13.2.rel1-x86_64-arm-none-eabi.tar.xz
-          TOOLCHAIN_DIR=$(pwd)/arm-gnu-toolchain-13.2.rel1-x86_64-arm-none-eabi
-          echo "TOOLCHAIN_DIR=$TOOLCHAIN_DIR" >> $GITHUB_ENV
-          echo "$TOOLCHAIN_DIR/bin" >> $GITHUB_PATH
-          arm-none-eabi-gcc --version || echo "ARM GCC not found"
+          echo "PICO_TOOLCHAIN_PATH=$(pwd)/arm-gnu-toolchain-13.2.Rel1-x86_64-arm-none-eabi" >> $GITHUB_ENV
+          echo "$(pwd)/arm-gnu-toolchain-13.2.Rel1-x86_64-arm-none-eabi/bin" >> $GITHUB_PATH
+          ls -l $(pwd)
+          ls -l $(pwd)/arm-gnu-toolchain*
+
+      - name: Verify Toolchain Installation
+        run: |
+          which arm-none-eabi-gcc
+          arm-none-eabi-gcc --version
 
       - name: Build mpy-cross
         run: |
@@ -35,11 +40,11 @@ jobs:
 
       - name: Build firmware for Pico W
         env:
-          PICO_TOOLCHAIN_PATH: ${{ env.TOOLCHAIN_DIR }}
+          PICO_TOOLCHAIN_PATH: ${{ env.PICO_TOOLCHAIN_PATH }}
         run: |
           cd micropython/ports/rp2
           git submodule update --init --recursive
-          cmake -DPICO_BOARD=pico_w -G "Ninja" .
+          cmake -DPICO_BOARD=pico_w -G Ninja .
           ninja
 
       - name: Upload firmware artifact
