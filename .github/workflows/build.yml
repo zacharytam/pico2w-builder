@@ -1,55 +1,50 @@
-name: Build Pico2W Firmware
+name: Build Pico W Firmware
 
 on:
-  push:
   workflow_dispatch:
+  push:
+    branches: [ main ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      # --- 1. Checkout your repo and all submodules ---
+      - name: Checkout repository (with submodules)
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Install dependencies
+      # --- 2. Install dependencies ---
+      - name: Install build dependencies
         run: |
           sudo apt update
-          sudo apt install -y build-essential cmake python3 wget xz-utils git ninja-build
+          sudo apt install -y cmake gcc-arm-none-eabi libnewlib-arm-none-eabi build-essential ninja-build git
 
-      - name: Install ARM GCC Toolchain
+      # --- 3. Set up environment variables ---
+      - name: Set up environment
         run: |
-          wget https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-x86_64-arm-none-eabi.tar.xz
-          tar -xf arm-gnu-toolchain-13.2.rel1-x86_64-arm-none-eabi.tar.xz
-          echo "PICO_TOOLCHAIN_PATH=$(pwd)/arm-gnu-toolchain-13.2.Rel1-x86_64-arm-none-eabi" >> $GITHUB_ENV
-          echo "$(pwd)/arm-gnu-toolchain-13.2.Rel1-x86_64-arm-none-eabi/bin" >> $GITHUB_PATH
-          ls -l $(pwd)
-          ls -l $(pwd)/arm-gnu-toolchain*
+          echo "PICO_SDK_PATH=$GITHUB_WORKSPACE/micropython/lib/pico-sdk" >> $GITHUB_ENV
+          echo "PICO_BOARD=pico_w" >> $GITHUB_ENV
 
-      - name: Verify Toolchain Installation
+      # --- 4. Build MicroPython for Pico W ---
+      - name: Build firmware
         run: |
-          which arm-none-eabi-gcc
-          arm-none-eabi-gcc --version
-
-      - name: Build mpy-cross
-        run: |
-          cd micropython/mpy-cross
-          make -j$(nproc)
-
-      - name: Build firmware for Pico W
-        env:
-          PICO_TOOLCHAIN_PATH: ${{ env.PICO_TOOLCHAIN_PATH }}
-        run: |
-          cd micropython/ports/rp2
-          git submodule update --init --recursive
-          cmake -DPICO_BOARD=pico_w -G Ninja .
+          cd micropython
+          make -C ports/rp2 submodules
+          cd ports/rp2
+          mkdir -p build-PICO_W
+          cd build-PICO_W
+          cmake .. -DPICO_BOARD=pico_w -DPICO_SDK_PATH=$PICO_SDK_PATH -G "Ninja"
           ninja
+          cd ../..
+          echo "Firmware build finished!"
 
+      # --- 5. Upload firmware artifact ---
       - name: Upload firmware artifact
         uses: actions/upload-artifact@v4
         with:
-          name: micropython-pico2w
+          name: pico_w_firmware
           path: micropython/ports/rp2/build-PICO_W/firmware.uf2
 
